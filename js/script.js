@@ -1,68 +1,77 @@
-// --- Strict Mode for Robustness ---
 "use strict";
 
-document.addEventListener("DOMContentLoaded", function () {
-  
-  // --- Custom Cursor & Aura Overlay ---
+document.addEventListener("DOMContentLoaded", () => {
+
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+
+  /* =========================
+     CUSTOM CURSOR
+  ========================= */
   const cursorDot = document.querySelector('.cursor-dot');
   const cursorOutline = document.querySelector('.cursor-outline');
-  
-  // Update mouse position for custom cursor and bento shimmer
-  window.addEventListener('mousemove', (e) => {
-    // Crosshair logic
-    if(cursorDot && cursorOutline) {
-      cursorDot.style.left = `${e.clientX}px`;
-      cursorDot.style.top = `${e.clientY}px`;
-      
-      // Add slight delay for the outline (trailing effect)
-      cursorOutline.animate({
-        left: `${e.clientX}px`,
-        top: `${e.clientY}px`
-      }, { duration: 500, fill: "forwards" });
+
+  if (!isTouch && cursorDot && cursorOutline) {
+    let x = 0, y = 0;
+    let outlineX = 0, outlineY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+      x = e.clientX;
+      y = e.clientY;
+
+      cursorDot.style.left = x + "px";
+      cursorDot.style.top = y + "px";
+    });
+
+    function animateCursor() {
+      outlineX += (x - outlineX) * 0.15;
+      outlineY += (y - outlineY) * 0.15;
+
+      cursorOutline.style.left = outlineX + "px";
+      cursorOutline.style.top = outlineY + "px";
+
+      requestAnimationFrame(animateCursor);
     }
-  });
+    animateCursor();
 
-  // Hover effects for the custom cursor
-  document.querySelectorAll('a, i').forEach(el => {
-    el.addEventListener('pointerenter', () => {
-      if(cursorOutline) {
-        cursorOutline.style.width = '60px';
-        cursorOutline.style.height = '60px';
-        cursorOutline.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
-      }
+    document.querySelectorAll('a, button, i').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        cursorOutline.style.width = "60px";
+        cursorOutline.style.height = "60px";
+        cursorOutline.style.background = "rgba(139,92,246,0.15)";
+      });
+      el.addEventListener('mouseleave', () => {
+        cursorOutline.style.width = "40px";
+        cursorOutline.style.height = "40px";
+        cursorOutline.style.background = "transparent";
+      });
     });
-    el.addEventListener('pointerleave', () => {
-      if(cursorOutline) {
-        cursorOutline.style.width = '40px';
-        cursorOutline.style.height = '40px';
-        cursorOutline.style.backgroundColor = 'transparent';
-      }
-    });
-  });
+  }
 
-  // --- Mobile Navigation ---
+  /* =========================
+     MOBILE NAV
+  ========================= */
   const menuIcon = document.querySelector('#menu-icon');
   const navbar = document.querySelector('.navbar');
 
-  if(menuIcon && navbar) {
+  if (menuIcon && navbar) {
     menuIcon.onclick = () => {
       menuIcon.classList.toggle('bx-x');
       navbar.classList.toggle('active');
     };
   }
 
-  // --- Update Active Nav Link on Scroll ---
+  /* =========================
+     ACTIVE LINK ON SCROLL
+  ========================= */
   const sections = document.querySelectorAll('section');
   const navLinks = document.querySelectorAll('.navbar a');
 
   window.addEventListener('scroll', () => {
-    let current = '';
-    
+    let current = "";
+
     sections.forEach(section => {
-      const sectionTop = section.offsetTop;
-      const sectionHeight = section.clientHeight;
-      // If we've scrolled past the top of the section (with some offset for the header)
-      if (window.scrollY >= sectionTop - 150) {
+      const top = section.offsetTop - 150;
+      if (scrollY >= top) {
         current = section.getAttribute('id');
       }
     });
@@ -74,96 +83,96 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    // Close mobile menu when scrolling past
-    if(menuIcon && navbar && window.scrollY > 0) {
+    if (menuIcon && navbar) {
       menuIcon.classList.remove('bx-x');
       navbar.classList.remove('active');
     }
   });
 
-  // --- Typing Text Animation ---
-  const textArray = ["Web Developer", "Node.js Enthusiast", "Python Programmer", "Student"];
-  const typingDelay = 100;
-  const erasingDelay = 100;
-  const newTextDelay = 2000;
-  let textArrayIndex = 0;
+  /* =========================
+     TYPING EFFECT
+  ========================= */
+  const words = ["Web Developer", "Node.js Enthusiast", "Python Programmer", "UI Architect"];
+  let wordIndex = 0;
   let charIndex = 0;
-  const typedTextSpan = document.querySelector(".typed-text");
-  const cursorSpan = document.querySelector(".cursor");
+  let isDeleting = false;
 
-  function type() {
-    if (!typedTextSpan || !cursorSpan) return;
-    if (charIndex < textArray[textArrayIndex].length) {
-      if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
-      typedTextSpan.textContent += textArray[textArrayIndex].charAt(charIndex);
-      charIndex++;
-      setTimeout(type, typingDelay);
+  const typed = document.querySelector(".typed-text");
+
+  function typeLoop() {
+    if (!typed) return;
+
+    const currentWord = words[wordIndex];
+
+    if (isDeleting) {
+      typed.textContent = currentWord.substring(0, charIndex--);
     } else {
-      cursorSpan.classList.remove("typing");
-      setTimeout(erase, newTextDelay);
+      typed.textContent = currentWord.substring(0, charIndex++);
     }
+
+    let speed = isDeleting ? 60 : 100;
+
+    if (!isDeleting && charIndex === currentWord.length) {
+      speed = 1500;
+      isDeleting = true;
+    } else if (isDeleting && charIndex === 0) {
+      isDeleting = false;
+      wordIndex = (wordIndex + 1) % words.length;
+      speed = 500;
+    }
+
+    setTimeout(typeLoop, speed);
   }
 
-  function erase() {
-    if (!typedTextSpan || !cursorSpan) return;
-    if (charIndex > 0) {
-      if (!cursorSpan.classList.contains("typing")) cursorSpan.classList.add("typing");
-      typedTextSpan.textContent = textArray[textArrayIndex].substring(0, charIndex - 1);
-      charIndex--;
-      setTimeout(erase, erasingDelay);
-    } else {
-      cursorSpan.classList.remove("typing");
-      textArrayIndex++;
-      if (textArrayIndex >= textArray.length) textArrayIndex = 0;
-      setTimeout(type, typingDelay + 1100);
-    }
-  }
+  typeLoop();
 
-  if (textArray.length) setTimeout(type, newTextDelay + 250);
+  /* =========================
+     SCROLL REVEAL (AUTO)
+  ========================= */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("reveal");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
 
-  // --- 3D Tilted Card & Bento Shimmer Effect ---
-  // Using querySelectorAll for all cards tagged with data-tilt
-  const tiltElements = document.querySelectorAll('.bento-card[data-tilt]');
-
-  tiltElements.forEach(el => {
-    el.addEventListener('mousemove', handleTilt);
-    el.addEventListener('mouseleave', resetTilt);
+  document.querySelectorAll('.bento-card, .heading').forEach(el => {
+    observer.observe(el);
   });
 
-  function handleTilt(e) {
-    const el = this;
-    const rect = el.getBoundingClientRect();
-    const width = el.clientWidth;
-    const height = el.clientHeight;
+  /* =========================
+     TILT + SHIMMER
+  ========================= */
+  if (!isTouch) {
+    const cards = document.querySelectorAll('.bento-card[data-tilt]');
 
-    // Mouse coordinates relative to card
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Update CSS variables for Shimmer before element
-    el.style.setProperty('--mouse-x', `${x}px`);
-    el.style.setProperty('--mouse-y', `${y}px`);
+    cards.forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
 
-    // Mouse position relative to center for Tilt
-    const centerX = x - width / 2;
-    const centerY = y - height / 2;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-    // Constrain the rotation to a small angle (smooth ReactBits feel)
-    const rotateX = -(centerY / height) * 15;
-    const rotateY = (centerX / width) * 15;
+        const centerX = x - rect.width / 2;
+        const centerY = y - rect.height / 2;
 
-    requestAnimationFrame(() => {
-      // Scale slightly up and apply 3D transform
-      el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        const rotateX = -(centerY / rect.height) * 12;
+        const rotateY = (centerX / rect.width) * 12;
+
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+
+        card.style.transform =
+          `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+      });
+
+      card.addEventListener('mouseleave', () => {
+        card.style.transform =
+          `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
+      });
     });
   }
-
-  function resetTilt() {
-    const el = this;
-    requestAnimationFrame(() => {
-      el.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
-    });
-  }
-
 
 });
